@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "33900102084",
+    "project_id": "wild-running-90c06",
+    "storage_bucket": "wild-running-90c06.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:33900102084:android:d163b015d2fa730985e491",
+        "android_client_info": {
+          "package_name": "com.migueldev.wildrunning"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "33900102084-hj5vc17mlku3314m320hejcnrj7fh6hf.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAvOHid9yfgDqS9RP1yDK2Y36hotG0noeQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "33900102084-hj5vc17mlku3314m320hejcnrj7fh6hf.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
