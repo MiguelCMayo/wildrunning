@@ -10,6 +10,19 @@
     tools:context=".MainActivity"
     tools:openDrawer="start">
 
+    <include
+        layout="@layout/app_bar_main"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
+
+    <com.google.android.material.navigation.NavigationView
+        android:id="@+id/nav_view"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="start"
+        app:menu="@menu/activity_main_drawer" />
+
+
     <RelativeLayout
         android:id="@+id/rlMain"
         android:layout_width="match_parent"
@@ -487,7 +500,7 @@
                                 android:translationY="-57dp"
                                 android:background="@color/blue"
                                 android:textColor="@color/white"
-                                android:onClick="callCenterMap"></TextView>
+                                android:onClick="callCenterMap"/>
                             <ImageView
                                 android:id="@+id/ivTypeMap"
                                 android:layout_width="55dp"
@@ -730,7 +743,7 @@
                             android:layout_marginRight="30dp"
                             android:layout_marginTop="40dp"
                             android:background="@color/gray_dark"
-                            android:onClick="inflateIntervalMode"
+                            android:onClick="callInflateIntervalMode"
                             tools:ignore="UseSwitchCompatOrMaterialXml" />
                         <LinearLayout
                             android:id="@+id/lyIntervalModeSpace"
@@ -865,6 +878,7 @@
                                         app:cs_start_angle="-180" />
                                     <!--
                                     CircularSeekBar support following attributes:
+
                                     app:cs_circle_style = "butt|round|square"
                                     app:cs_progress = "integer"
                                     app:cs_max = "integer"
@@ -892,6 +906,7 @@
                                     app:cs_end_angle = "float"
                                     app:cs_disable_progress_glow = "boolean"
                                     app:cs_hide_progress_when_empty = "boolean"
+
                                     -->
 
                                 </LinearLayout>
@@ -2133,17 +2148,5 @@
 
 
 
-
-    <include
-        layout="@layout/app_bar_main"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"/>
-
-    <com.google.android.material.navigation.NavigationView
-        android:id="@+id/nav_view"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_gravity="start"
-        app:menu="@menu/activity_main_drawer" />
 
 </androidx.drawerlayout.widget.DrawerLayout>
