@@ -31,10 +31,20 @@ import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest.PRIORITY_HIGH_ACCURACY
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
+import com.google.android.gms.maps.CameraUpdateFactory
+import com.google.android.gms.maps.GoogleMap
+import com.google.android.gms.maps.OnMapReadyCallback
+import com.google.android.gms.maps.SupportMapFragment
+import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.PolylineOptions
+import com.google.android.gms.maps.model.RoundCap
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.navigation.NavigationView
 import com.google.firebase.auth.FirebaseAuth
 import com.migueldev.wildrunning.Constants.INTERVAL_LOCATION
+import com.migueldev.wildrunning.Constants.LIMIT_DISTANCE_ACCEPTED_BIKE
+import com.migueldev.wildrunning.Constants.LIMIT_DISTANCE_ACCEPTED_ROLLERSKATE
+import com.migueldev.wildrunning.Constants.LIMIT_DISTANCE_ACCEPTED_RUNNING
 import com.migueldev.wildrunning.LoginActivity.Companion.providerSession
 import com.migueldev.wildrunning.LoginActivity.Companion.useremail
 import com.migueldev.wildrunning.Utility.animateViewofFloat
@@ -47,9 +57,13 @@ import me.tankery.lib.circularseekbar.CircularSeekBar
 import me.tankery.lib.circularseekbar.CircularSeekBar.OnCircularSeekBarChangeListener
 
 
-class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener {
+class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener,
+    OnMapReadyCallback, GoogleMap.OnMyLocationButtonClickListener,
+    GoogleMap.OnMyLocationClickListener {
 
     companion object{
+        lateinit var mainContext: Context
+
         val REQUIRED_PERMISSIONS_GPS =
             arrayOf(
                 Manifest.permission.ACCESS_COARSE_LOCATION,
@@ -116,12 +130,20 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private var hardTime : Boolean = true
     private var TIME_RUNNING: Int = 0
 
+    private var LIMIT_DISTANCE_ACCEPTED: Double = 0.0
+    private lateinit var sportSelected : String
+
     private lateinit var lyPopupRun: LinearLayout
 
+    private lateinit var map: GoogleMap
+    private var mapCentered = true
+    private lateinit var listPoints: Iterable<LatLng>
+
+    private val PERMISSION_ID = 42
+    private val LOCATION_PERMISSION_REQ_CODE = 1000
 
     private var activatedGPS: Boolean = true
     private lateinit var fusedLocationClient: FusedLocationProviderClient
-    private val PERMISSION_ID = 42
     private var flagSavedLocation = false
 
     private var latitude: Double = 0.0
@@ -134,10 +156,18 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private var avgSpeed: Double = 0.0
     private var speed: Double = 0.0
 
+    private var minAltitude: Double? = null
+    private var maxAltitude: Double? = null
+    private var minLatitude: Double? = null
+    private var maxLatitude: Double? = null
+    private var minLongitude: Double? = null
+    private var maxLongitude: Double? = null
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        mainContext = this
 
         initObjects()
 
@@ -492,6 +522,10 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         initChallengeMode()
         initMusic()
         hidePopUpRun()
+
+        initMap()
+
+
     }
 
     override fun onNavigationItemSelected(item: MenuItem): Boolean {
@@ -511,6 +545,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private fun signOut(){
         useremail = ""
 
+        //if (providerSession == "Facebook")  LoginManager.getInstance().logOut()
 
         FirebaseAuth.getInstance().signOut()
         startActivity (Intent(this, LoginActivity::class.java))
@@ -652,7 +687,131 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         }
     }
 
+    private fun initMap(){
 
+        listPoints = arrayListOf()
+        (listPoints as ArrayList<LatLng>).clear()
+
+        createMapFragment()
+
+        var lyOpenerButton = findViewById<LinearLayout>(R.id.lyOpenerButton)
+        if (allPermissionsGrantedGPS()) lyOpenerButton.isEnabled = true
+        else  lyOpenerButton.isEnabled = false
+
+    }
+
+    override fun onMyLocationButtonClick(): Boolean {
+        return false
+    }
+    override fun onMyLocationClick(p0: Location) {
+
+    }
+
+    private fun createMapFragment(){
+        val mapFragment = supportFragmentManager.findFragmentById(R.id.fragmentMap) as SupportMapFragment?
+        mapFragment?.getMapAsync(this)
+    }
+
+    override fun onMapReady(googleMap: GoogleMap) {
+        map = googleMap
+
+        googleMap.mapType = GoogleMap.MAP_TYPE_HYBRID
+        enableMyLocation()
+        map.setOnMyLocationButtonClickListener (this)
+        map.setOnMyLocationClickListener(this)
+        map.setOnMapLongClickListener {  mapCentered = false }
+        map.setOnMapClickListener { mapCentered = false  }
+
+        manageLocation()
+        centerMap (init_lt ,init_ln)
+
+    }
+
+
+    override fun onRequestPermissionsResult(requestCode: Int,permissions: Array<out String>,grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+
+        when (requestCode){
+            LOCATION_PERMISSION_REQ_CODE -> {
+                var lyOpenerButton = findViewById<LinearLayout>(R.id.lyOpenerButton)
+
+                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED)
+                    lyOpenerButton.isEnabled = true
+                else{
+                    var lyMap = findViewById<LinearLayout>(R.id.lyMap)
+                    if (lyMap.height > 0){
+                        setHeightLinearLayout(lyMap, 0)
+
+                        var lyFragmentMap = findViewById<LinearLayout>(R.id.lyFragmentMap)
+                        lyFragmentMap.translationY= -300f
+
+                        var ivOpenClose = findViewById<ImageView>(R.id.ivOpenClose)
+                        ivOpenClose.setRotation(0f)
+                    }
+
+                    lyOpenerButton.isEnabled = false
+
+                }
+            }
+        }
+    }
+
+    private fun enableMyLocation(){
+        if (!::map.isInitialized) return
+        if (ActivityCompat.checkSelfPermission(  this,Manifest.permission.ACCESS_FINE_LOCATION)
+            != PackageManager.PERMISSION_GRANTED
+
+            && ActivityCompat.checkSelfPermission(this,Manifest.permission.ACCESS_COARSE_LOCATION)
+            != PackageManager.PERMISSION_GRANTED) {
+            requestPermissionLocation()
+            return
+        }
+        else map.isMyLocationEnabled = true
+
+    }
+
+    private fun centerMap(lt: Double, ln: Double){
+        val posMap = LatLng(lt, ln)
+        map.animateCamera(CameraUpdateFactory.newLatLngZoom(posMap, 16f), 1000, null)
+
+    }
+
+    fun changeTypeMap(v: View){
+        var ivTypeMap = findViewById<ImageView>(R.id.ivTypeMap)
+        if (map.mapType == GoogleMap.MAP_TYPE_HYBRID){
+            map.mapType = GoogleMap.MAP_TYPE_NORMAL
+            ivTypeMap.setImageResource(R.drawable.map_type_hybrid)
+        }
+        else{
+            map.mapType = GoogleMap.MAP_TYPE_HYBRID
+            ivTypeMap.setImageResource(R.drawable.map_type_normal)
+        }
+    }
+    fun callCenterMap(v: View){
+        mapCentered = true
+        if (latitude == 0.0) centerMap(init_lt, init_ln)
+        else centerMap(latitude, longitude)
+    }
+    fun callShowHideMap(v: View){
+        if (allPermissionsGrantedGPS()){
+            var lyMap = findViewById<LinearLayout>(R.id.lyMap)
+            var lyFragmentMap = findViewById<LinearLayout>(R.id.lyFragmentMap)
+            var ivOpenClose = findViewById<ImageView>(R.id.ivOpenClose)
+
+            if (lyMap.height == 0){
+                setHeightLinearLayout(lyMap, 1157)
+                animateViewofFloat(lyFragmentMap, "translationY", 0f, 0)
+                ivOpenClose.setRotation(180f)
+            }
+            else{
+                setHeightLinearLayout(lyMap, 0)
+                lyFragmentMap.translationY= -300f
+                ivOpenClose.setRotation(0f)
+            }
+
+        }
+        else requestPermissionLocation()
+    }
 
     private fun initPermissionsGPS(){
         if (allPermissionsGrantedGPS())
@@ -740,12 +899,43 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             if (timeInSeconds >= INTERVAL_LOCATION){
                 var distanceInterval = calculateDistance(new_latitude, new_longitude)
 
-                updateSpeeds(distanceInterval)
-                refreshInterfaceData()
+                if ( distanceInterval <= LIMIT_DISTANCE_ACCEPTED){
+                    updateSpeeds(distanceInterval)
+                    refreshInterfaceData()
+
+                    var newPos = LatLng (new_latitude, new_longitude)
+                    (listPoints as ArrayList<LatLng>).add(newPos)
+                    createPolylines(listPoints)
+
+                }
+
             }
         }
         latitude = new_latitude
         longitude = new_longitude
+
+        if (mapCentered == true) centerMap(latitude, longitude)
+
+        if (minLatitude == null){
+            minLatitude = latitude
+            maxLatitude = latitude
+            minLongitude = longitude
+            maxLongitude = longitude
+        }
+        if (latitude < minLatitude!!) minLatitude = latitude
+        if (latitude > maxLatitude!!) maxLatitude = latitude
+        if (longitude < minLongitude!!) minLongitude = longitude
+        if (longitude > maxLongitude!!) maxLongitude = longitude
+
+        if (location.hasAltitude()){
+            if (maxAltitude == null){
+                maxAltitude = location.altitude
+                minAltitude = location.altitude
+            }
+            if (location.latitude > maxAltitude!!) maxAltitude = location.altitude
+            if (location.latitude < minAltitude!!) minAltitude = location.altitude
+        }
+
     }
     private fun calculateDistance(n_lt: Double, n_lg: Double): Double{
         val radioTierra = 6371.0 //en kilómetros
@@ -762,9 +952,8 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         val va2 = 2 * Math.atan2(Math.sqrt(va1), Math.sqrt(1 - va1))
         var n_distance =  radioTierra * va2
 
-        //if (n_distance < LIMIT_DISTANCE_ACCEPTED) distance += n_distance
+        if (n_distance < LIMIT_DISTANCE_ACCEPTED) distance += n_distance
 
-        distance += n_distance
         return n_distance
     }
     private fun updateSpeeds(d: Double) {
@@ -796,6 +985,61 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             csbCurrentSpeed.max = csbRecordSpeed.max
         }
     }
+
+    private fun createPolylines(listPosition: Iterable<LatLng>){
+        val polylineOptions = PolylineOptions()
+            .width(25f)
+            .color(ContextCompat.getColor(this, R.color.salmon_dark))
+            .addAll(listPosition)
+
+        val polyline = map.addPolyline(polylineOptions)
+        polyline.startCap = RoundCap()
+
+    }
+
+    fun selectBike(v: View){
+        if (timeInSeconds.toInt() == 0) selectSport("Bike")
+    }
+    fun selectRollerSkate(v: View){
+        if (timeInSeconds.toInt() == 0) selectSport("RollerSkate")
+    }
+    fun selectRunning(v: View){
+        if (timeInSeconds.toInt() == 0) selectSport("Running")
+    }
+    private fun selectSport(sport: String){
+
+        sportSelected = sport
+
+        var lySportBike = findViewById<LinearLayout>(R.id.lySportBike)
+        var lySportRollerSkate = findViewById<LinearLayout>(R.id.lySportRollerSkate)
+        var lySportRunning = findViewById<LinearLayout>(R.id.lySportRunning)
+
+        when (sport){
+            "Bike"->{
+                LIMIT_DISTANCE_ACCEPTED = LIMIT_DISTANCE_ACCEPTED_BIKE
+
+                lySportBike.setBackgroundColor(ContextCompat.getColor(mainContext, R.color.orange))
+                lySportRollerSkate.setBackgroundColor(ContextCompat.getColor(mainContext, R.color.gray_medium))
+                lySportRunning.setBackgroundColor(ContextCompat.getColor(mainContext, R.color.gray_medium))
+            }
+            "RollerSkate"->{
+                LIMIT_DISTANCE_ACCEPTED = LIMIT_DISTANCE_ACCEPTED_ROLLERSKATE
+
+                lySportBike.setBackgroundColor(ContextCompat.getColor(mainContext, R.color.gray_medium))
+                lySportRollerSkate.setBackgroundColor(ContextCompat.getColor(mainContext, R.color.orange))
+                lySportRunning.setBackgroundColor(ContextCompat.getColor(mainContext, R.color.gray_medium))
+            }
+            "Running"->{
+                LIMIT_DISTANCE_ACCEPTED = LIMIT_DISTANCE_ACCEPTED_RUNNING
+
+                lySportBike.setBackgroundColor(ContextCompat.getColor(mainContext, R.color.gray_medium))
+                lySportRollerSkate.setBackgroundColor(ContextCompat.getColor(mainContext, R.color.gray_medium))
+                lySportRunning.setBackgroundColor(ContextCompat.getColor(mainContext, R.color.orange))
+            }
+
+        }
+    }
+
 
     fun startOrStopButtonClicked (v: View){
         manageStartStop()
@@ -959,6 +1203,19 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         timeInSeconds = 0
         rounds = 1
         hardTime = true
+
+        distance = 0.0
+        maxSpeed = 0.0
+        avgSpeed = 0.0
+
+        minAltitude = null
+        maxAltitude = null
+        minLatitude = null
+        maxLatitude = null
+        minLongitude = null
+        maxLongitude = null
+
+        (listPoints as ArrayList<LatLng>).clear()
 
         challengeDistance = 0f
         challengeDuration = 0
