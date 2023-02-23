@@ -29,6 +29,9 @@
         android:theme="@style/Theme.WildRunning"
         tools:targetApi="31">
         <activity
+            android:name=".RunActivity"
+            android:exported="false" />
+        <activity
             android:name=".Camara"
             android:exported="false" />
         <activity
