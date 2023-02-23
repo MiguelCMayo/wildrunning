@@ -9,8 +9,12 @@ import android.widget.LinearLayout
 import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
+import com.google.firebase.ktx.Firebase
+import com.google.firebase.storage.FirebaseStorage
+import com.google.firebase.storage.ktx.storage
 import com.migueldev.wildrunning.LoginActivity.Companion.useremail
 import com.migueldev.wildrunning.MainActivity.Companion.activatedGPS
+import com.migueldev.wildrunning.MainActivity.Companion.countPhotos
 import com.migueldev.wildrunning.MainActivity.Companion.totalsBike
 import com.migueldev.wildrunning.MainActivity.Companion.totalsRollerSkate
 import com.migueldev.wildrunning.MainActivity.Companion.totalsRunning
@@ -113,7 +117,12 @@ object Utility {
     fun deleteRunAndLinkedData(idRun: String, sport: String, ly: LinearLayout, cr: Runs){
 
         if (activatedGPS) deleteLocations(idRun, useremail)
-        //si habia fotos, borramos todas las fotos
+
+        //if (countPhotos > 0) deletePicturesRun(idRun)
+
+
+
+
         updateTotals(cr)
         checkRecords(cr, sport, useremail)
         deleteRun(idRun, sport, ly)
@@ -138,6 +147,35 @@ object Utility {
 
             }
     }
+/*
+    private fun deletePicturesRun(idRun: String) {
+        var idFolder = idRun.subSequence(useremail.length, idRun.length).toString()
+        val delRef = FirebaseStorage.getInstance().getReference("images/$useremail/$idFolder")
+        val storage = Firebase.storage
+        val listRef = storage.reference.child("images/$useremail/$idFolder")
+
+
+// You'll need to import com.google.firebase.storage.ktx.component1 and
+// com.google.firebase.storage.ktx.component2
+       listRef.listAll()
+            .addOnSuccessListener { (items, prefixes) ->
+                prefixes.forEach { prefix ->
+                    // All the prefixes under listRef.
+                    // You may call listAll() recursively on them.
+                }
+
+                items.forEach { item ->
+                    // All the items under listRef.
+                }
+            }
+            .addOnFailureListener {
+                // Uh-oh, an error occurred!
+            }
+    }
+
+ */
+
+
 
     private fun updateTotals(cr: Runs){
         totalsSelectedSport.totalDistance = totalsSelectedSport.totalDistance!! - cr.distance!!

@@ -106,6 +106,9 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 Manifest.permission.ACCESS_COARSE_LOCATION,
                 Manifest.permission.ACCESS_FINE_LOCATION)
 
+        var countPhotos : Int = 0
+        var lastimage: String = ""
+
 
     }
     private lateinit var sharedPreferences: SharedPreferences
@@ -2296,6 +2299,8 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             "medalDistance" to medalDistance,
             "medalAvgSpeed" to medalAvgSpeed,
             "medalMaxSpeed" to medalMaxSpeed,
+            "lastimage" to lastimage,
+            "countPhotos" to countPhotos,
         ))
 
         if (swIntervalMode.isChecked){
@@ -2663,5 +2668,14 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         lyWindow.translationX = 400f
         lyPopupRun = findViewById(R.id.lyPopupRun)
         lyPopupRun.isVisible = false
+    }
+    fun takePicture(v: View){
+        val intent = Intent(this, Camara::class.java)
+
+        val inParameter = intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+        inParameter.putExtra("dateRun", dateRun)
+        inParameter.putExtra("startTimeRun", startTimeRun)
+
+        startActivity(intent)
     }
 }

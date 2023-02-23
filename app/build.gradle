@@ -90,6 +90,12 @@ dependencies {
     //geolocalizacion
     implementation 'com.google.android.gms:play-services-location:17.0.0'
 
+    //storage firestore
+    implementation 'com.google.firebase:firebase-firestore-ktx:24.4.3'
+    implementation 'com.google.firebase:firebase-firestore:24.4.3'
+    implementation 'com.google.firebase:firebase-storage-ktx:20.1.0'
+    implementation 'com.google.firebase:firebase-database-ktx:20.1.0'
+
     //camara
     implementation 'androidx.camera:camera-view:1.0.0-alpha23'
     implementation("androidx.camera:camera-core:1.0.1")
