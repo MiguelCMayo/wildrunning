@@ -3,6 +3,7 @@ package com.migueldev.wildrunning
 import android.Manifest
 import android.animation.ObjectAnimator
 import android.annotation.SuppressLint
+import android.appwidget.AppWidgetManager
 import android.content.*
 import android.content.pm.PackageManager
 import android.location.Location
@@ -89,7 +90,7 @@ import kotlin.collections.ArrayList
 
 class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener,
     OnMapReadyCallback, GoogleMap.OnMyLocationButtonClickListener,
-    GoogleMap.OnMyLocationClickListener {
+    GoogleMap.OnMyLocationClickListener{
 
     companion object{
         lateinit var mainContext: Context
@@ -106,11 +107,15 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 Manifest.permission.ACCESS_COARSE_LOCATION,
                 Manifest.permission.ACCESS_FINE_LOCATION)
 
+
         var countPhotos : Int = 0
         var lastimage: String = ""
 
-
+        lateinit var chronoWidget: String
+        lateinit var distanceWidget: String
     }
+
+
     private lateinit var sharedPreferences: SharedPreferences
     private lateinit var editor: SharedPreferences.Editor
 
@@ -252,6 +257,10 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private var recMaxSpeedSilver: Boolean = false
     private var recMaxSpeedBronze: Boolean = false
 
+
+    private lateinit var widget: Widget
+    private lateinit var mAppWidgetManager: AppWidgetManager
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -263,9 +272,32 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         initNavigationView()
         initPermissionsGPS()
 
-
+        initWidget()
         loadFromDB()
     }
+
+    private fun initWidget(){
+        widget = Widget()
+        mAppWidgetManager = AppWidgetManager.getInstance(mainContext)!!
+        updateWidegts()
+    }
+
+    private fun updateWidegts(){
+
+        chronoWidget = tvChrono.text.toString()
+        distanceWidget = roundNumber(distance.toString(),1)
+
+
+        val intent = Intent(application, Widget::class.java)
+        intent.action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
+
+        val ids = mAppWidgetManager.getAppWidgetIds(ComponentName(application, Widget::class.java))
+        intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids)
+        sendBroadcast(intent)
+    }
+
+
+
 
     override fun onBackPressed() {
         //super.onBackPressed()
@@ -1635,7 +1667,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
                     saveLocation(location)
 
-                    var newPos = LatLng (new_latitude, new_longitude)
+                    var newPos = LatLng(new_latitude, new_longitude)
                     (listPoints as ArrayList<LatLng>).add(newPos)
                     createPolylines(listPoints)
 
@@ -1731,7 +1763,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         }
 
     }
-
     private fun notifyMedal(category: String, metal: String, scope: String){
         var CHANNEL_ID = "NEW $scope RECORD - $sportSelected"
 
@@ -1783,13 +1814,11 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                     "bronze"->notificationId = 33
                 }
         }
-/*          DA ERROR
-        with(NotificationManagerCompat.from(this)) {
-            // notificationId is a unique int for each notification that you must define
-            notify(notificationId, builder.build())
-        }
 
- */
+        //with(NotificationManagerCompat.from(this)) {
+        //    // notificationId is a unique int for each notification that you must define
+        //    notify(notificationId, builder.build())
+        //}
 
     }
 
@@ -1880,15 +1909,19 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
     }
     private fun createPolylines(listPosition: Iterable<LatLng>){
+
         val polylineOptions = PolylineOptions()
             .width(25f)
             .color(ContextCompat.getColor(this, R.color.salmon_dark))
-            .addAll(listPosition)
+            .addAll(listPoints)
 
         val polyline = map.addPolyline(polylineOptions)
         polyline.startCap = RoundCap()
 
     }
+
+
+
     private fun saveLocation(location: Location){
         var dirName = dateRun + startTimeRun
         dirName = dirName.replace("/", "")
@@ -2074,6 +2107,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     fun startOrStopButtonClicked (v: View){
         manageStartStop()
     }
+
     private fun manageStartStop(){
         if (timeInSeconds == 0L && isLocationEnabled() == false){
             AlertDialog.Builder(this)
@@ -2218,6 +2252,10 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
                 timeInSeconds += 1
                 updateStopWatchView()
+
+                updateWidegts()
+
+
             } finally {
                 mHandler!!.postDelayed(this, mInterval.toLong())
             }
@@ -2240,7 +2278,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
         resetTimeView()
         resetInterface()
-        resetMedals()
+
     }
 
     private fun saveDataRun(){
@@ -2300,7 +2338,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             "medalAvgSpeed" to medalAvgSpeed,
             "medalMaxSpeed" to medalMaxSpeed,
             "lastimage" to lastimage,
-            "countPhotos" to countPhotos,
+            "countPhotos" to countPhotos
         ))
 
         if (swIntervalMode.isChecked){
@@ -2364,6 +2402,8 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
         activatedGPS = true
         flagSavedLocation = false
+
+        countPhotos = 0
 
 
     }
@@ -2661,7 +2701,9 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         rlMain.isEnabled = true
 
         resetVariablesRun()
+        resetMedals()
         selectSport(sportSelected)
+        updateWidegts()
     }
     private fun hidePopUpRun(){
         var lyWindow = findViewById<LinearLayout>(R.id.lyWindow)
@@ -2669,6 +2711,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         lyPopupRun = findViewById(R.id.lyPopupRun)
         lyPopupRun.isVisible = false
     }
+
     fun takePicture(v: View){
         val intent = Intent(this, Camara::class.java)
 
@@ -2678,7 +2721,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
         startActivity(intent)
     }
-
     fun shareRun(v: View){ callShareRun() }
     private fun callShareRun(){
 
@@ -2763,4 +2805,5 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         startActivity(intent)
 
     }
+
 }
