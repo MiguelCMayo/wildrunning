@@ -10,11 +10,11 @@ data class Runs(
 
     var intervalMode: Boolean ?= null,
     var intervalDuration:  Int ?= null,
-    var runingTime: String ?= null,
+    var runningTime: String ?= null,
     var walkingTime: String ?= null,
 
-    var ChallengeDuration: String ?= null,
-    var ChallengeDistance: Double ?= null,
+    var challengeDuration: String ?= null,
+    var challengeDistance: Double ?= null,
 
     var distance: Double ?= null,
     var maxSpeed: Double ?= null,
@@ -22,6 +22,8 @@ data class Runs(
 
     var centerLatitude: Double ?= null,
     var centerLongitude: Double ?= null,
+    var maxAltitude: Double ?= null,
+    var minAltitude: Double ?= null,
 
     var sport: String ?= null,
 
@@ -29,6 +31,8 @@ data class Runs(
 
     var medalDistance: String ?= null,
     var medalAvgSpeed: String ?= null,
-    var medalMaxSpeed: String ?= null
+    var medalMaxSpeed: String ?= null,
+
+    var activatedGPS: Boolean?= null
 
     )
