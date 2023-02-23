@@ -9,7 +9,6 @@
     <uses-feature android:name="android.hardware.location.gps" />
 
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.CAMERA" />
@@ -19,6 +18,7 @@
     <uses-feature
         android:name="android.hardware.camera"
         android:required="true" />
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -28,6 +28,9 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.WildRunning"
         tools:targetApi="31">
+        <activity
+            android:name=".Camara"
+            android:exported="false" />
         <activity
             android:name=".RecordActivity"
             android:exported="false" />
@@ -54,10 +57,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <!-- <meta-data
-            android:name="com.google.android.geo.API_KEY"
-           android:value="@string/google_maps_key"/>-->
-
     </application>
 
 </manifest>
